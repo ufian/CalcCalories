@@ -18,44 +18,6 @@ DEBUG_MSG = False
 DEBUG_CTX = True
 
 
-MENU = {
-    'Main': {
-        'text': u'Что делаеть?',
-        'buttons': [[
-            (u'Поесть', u'Eat'),
-            (u'Готовое', u'Ready'),
-            (u'Приготовить', u'Cook'),
-            (u'Доесть', u'Finish'),
-        ]]
-    },
-    'Eat': {
-        'text': u'Что едим?',
-        'text_fail': u'Нечего есть'
-    },
-    'Ready': {
-        'text': u'Что едим?',
-        'text_fail': u'Нечего есть'
-    },
-    'Cook': {
-        'text': u'Что готовим?',
-        'buttons': [[
-            (u'Новое блюдо', u'Cook|New'),
-            (u'Известное', u'Cook|Base'),
-            (u'Ингридиент', u'Cook|Ingredient')
-        ]],
-        'steps': {
-            'Ingredient': [
-                (u'Название', u'name'),
-                (u'Калорийность', u'calories'),
-            ]
-        }
-    },
-    'Finish': {
-        'text': u'Что доели?',
-        'text_fail': u'Нечего доедать'
-    }
-}
-
 def trunc_date(date):
     return datetime.datetime.combine(date.date(), datetime.time(0)) - datetime.timedelta(0, 3*60*60)
 
@@ -384,21 +346,6 @@ class Context(object):
         else:
             self.bot.editMessageText(message_idf, text, reply_markup=markup)
 
-    def apply_state(self, message_idf=None, text=None, markup=None):
-        m = BaseMenu.MENU[self.state]
-        text = text or m['text']
-        if markup is list:
-            markup = do_markup(markup)
-        elif markup is False:
-            markup = None
-        else:
-            markup = do_markup(m.get('buttons'))
-
-        if message_idf is None:
-            self.bot.sendMessage(self.user_id, text, reply_markup=markup)
-        else:
-            self.bot.editMessageText(message_idf, text, reply_markup=markup)
-
     def get_reply(self, data):
         reply = None
         i = 0
@@ -432,27 +379,12 @@ class Context(object):
     def process(self, msg):
 
         data = {
-            'text': msg.get('text'),
+            'text': get_text(msg),
             'user_id': self.user_id
         }
 
         reply = self.get_reply(data)
         self.send_reply(reply)
-
-
-
-
-        '''if self.state == 'Main':
-            self.apply_state()
-        elif self.state == 'Eat':
-            self.apply_state()
-        elif self.state == 'Cook':
-            self.process_cook()
-        elif self.state == 'Finish':
-            self.apply_state()
-        else:
-            self.state = 'Main'
-            self.apply_state()'''
 
     @debug
     def process_callback(self, msg):
@@ -467,19 +399,6 @@ class Context(object):
 
         reply = self.get_reply(data)
         self.send_reply(reply, message_idf)
-
-
-    def process_cook(self,message_idf=None):
-        m = MENU[self.state]
-        if len(self.params) == 1:
-            self.apply_state(message_idf)
-        elif len(self.params) == 2:
-            if self.params[1] == 'Ingredient':
-                self.params.append(0)
-                self.apply_state(message_idf=message_idf, text=m['steps']['Ingredient'][0][0], markup=False)
-
-
-
 
 
 class CcalBot(telepot.Bot):
@@ -499,11 +418,6 @@ class CcalBot(telepot.Bot):
 
         return self.user_context[user_id]
 
-    def main_menu(self, user_id):
-        m = MENU['Main']
-        res = self.sendMessage(user_id, m['text'], reply_markup=do_markup(m['buttons']))
-        self.inliner[user_id] = Context(self, user_id)
-
     def save_message(self, msg, skip_reply=False):
         user_id = get_user_id(msg)
         msg_copy = msg.copy()
@@ -514,17 +428,11 @@ class CcalBot(telepot.Bot):
 
     @debug
     def on_chat_message(self, msg):
-        self.save_message(msg)
+        self.save_message(msg, skip_reply=True)
 
         user_id = get_user_id(msg)
         context = self.get_context(user_id)
         context.process(msg)
-
-        '''if user_id in self.inliner:
-            inline = self.inliner[user_id]
-            inline.process(msg)
-        else:
-            self.main_menu(user_id)'''
 
     @debug
     def on_callback_query(self, msg):
@@ -535,20 +443,6 @@ class CcalBot(telepot.Bot):
         context.process_callback(msg)
 
         return
-
-
-        user_id = get_user_id(msg)
-        if user_id in self.inliner:
-            inline = self.inliner[user_id]
-            inline.process_callback(msg)
-        else:
-            message_idf = telepot.message_identifier(msg['message'])
-            self.editMessageReplyMarkup(message_idf, reply_markup=None)
-
-            self.main_menu(user_id)
-
-
-
 
     def on_inline_query(self, msg):
         query_id, from_id, query_string = telepot.glance(msg, flavor='inline_query')
