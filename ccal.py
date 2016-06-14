@@ -8,7 +8,8 @@ import time
 import pymongo
 import datetime
 import json
-from collections import defaultdict
+
+import utils as u
 
 from telepot.namedtuple import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardHide, ForceReply
 from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
@@ -18,23 +19,6 @@ DEBUG_MSG = False
 DEBUG_CTX = True
 
 
-def trunc_date(date):
-    return datetime.datetime.combine(date.date(), datetime.time(0)) - datetime.timedelta(0, 3*60*60)
-
-def trunc_now():
-    return trunc_date(datetime.datetime.now())
-
-def do_markup(keys):
-    if keys is None:
-        return None
-
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(text=name, callback_data=data)
-                for (name, data) in row
-            ] for row in keys
-        ])
 
 
 def debug(func):
@@ -66,7 +50,7 @@ class BaseMenu(object):
 
     TYPE = 'Base'
 
-    BACK_BUTTON = (u'Отмена', 'back')
+    BACK_BUTTON = (u'Отмена', 'Main')
 
 
     @classmethod
@@ -78,9 +62,64 @@ class BaseMenu(object):
     def get(cls, context, data):
         return {}
 
+class BaseChooseMenu(BaseMenu):
+    __not_menu__ = True
+
+    TEXT = ""
+    BUTTONS = None
+
+    _KEYBOARD = None
+    _DESTINATIONS = None
+
+    @classmethod
+    def get(cls, context, data):
+        if cls._KEYBOARD is None:
+            cls._KEYBOARD = [cls.BUTTONS] if cls.BUTTONS[0] is list else cls.BUTTONS
+            cls._DESTINATIONS = {cell[1] for row in cls._KEYBOARD for cell in row}
+
+        if 'cb_data' in data and 'from' not in data:
+            if data['cb_data'] in cls._DESTINATIONS:
+                context.set(data['cb_data'])
+                return None
+
+        text = None
+        if isinstance(cls.TEXT, basestring):
+            text = cls.TEXT
+        else:
+            text = cls.TEXT(context, data)
+
+        return {
+            'text': cls.TEXT,
+            'buttons': cls._KEYBOARD
+        }
+
 
 class MainMenu(BaseMenu):
     TYPE = 'Main'
+
+    BUTTONS = [
+        (u'Поесть', u'EatChoose'),
+        (u'Готовое', u'Ready'),
+        (u'Приготовить', u'Cook'),
+        (u'Доесть', u'Finish'),
+    ]
+
+    MAIN_TEXT = u'Что делаеть?'
+
+    @classmethod
+    def get_text(cls, context, data):
+        parts = list()
+
+        if 'from_message' in data:
+            data.append(data['from_message'])
+            data.append('')
+
+        data.append(u"Сегодня съедено {0} ккал".format(context.ccalories.get_today_calories(context.user_id)))
+
+        return u"\n".join(parts)
+
+    TEXT = get_text
+
 
     @classmethod
     def get(cls, context, data):
@@ -101,21 +140,12 @@ class MainMenu(BaseMenu):
         return {
             'text': text,
             'buttons': [[
-                (u'Поесть', u'EatChoose'),
-                (u'Готовое', u'Ready'),
-                (u'Приготовить', u'Cook'),
-                (u'Доесть', u'Finish'),
             ]]
         }
 
-def get_int(text):
-    try:
-        return int(text.strip())
-    except ValueError:
-        return None
 
 
-class EatChooseMenu(BaseMenu):
+class EatChooseMenu(BaseChooseMenu):
     TYPE = 'EatChoose'
 
     TEXT = u'Что вы хотите ввести'
@@ -125,21 +155,6 @@ class EatChooseMenu(BaseMenu):
         BaseMenu.BACK_BUTTON
     ]
 
-    @classmethod
-    def get(cls, context, data):
-        if 'cb_data' in data and 'from' not in data:
-            if data['cb_data'] == 'back':
-                context.set('Main')
-                return None
-
-            if data['cb_data'] in [b[1] for b in cls.BUTTONS]:
-                context.set(data['cb_data'])
-                return None
-
-        return {
-            'text': cls.TEXT,
-            'buttons': [cls.BUTTONS]
-        }
 
 
 class EatCMenu(BaseMenu):
@@ -177,7 +192,7 @@ class EatCMenu(BaseMenu):
 
         elif 'text' in data:
             if 'calories' not in context.params:
-                calories = get_int(data['text'])
+                calories = u.get_int(data['text'])
                 if calories is None or calories <= 0:
                     return {
                         'text': u'Неправильное число. Введите общую калорийность съеденого',
@@ -226,7 +241,7 @@ class EatCWMenu(BaseMenu):
             }
         elif 'text' in data:
             if 'calories' not in context.params:
-                calories = get_int(data['text'])
+                calories = u.get_int(data['text'])
                 if calories is None or calories <= 0:
                     return {
                         'text': u'Неправильное число. Введите калорийность за 100 грамм',
@@ -243,7 +258,7 @@ class EatCWMenu(BaseMenu):
                     ]]
                 }
             elif 'weight' not in context.params:
-                weight = get_int(data['text'])
+                weight = u.get_int(data['text'])
                 if weight is None or weight <= 0:
                     return {
                         'text': u'Неправильное число. Введите вес в граммах',
@@ -278,7 +293,7 @@ class CalculatorCalories(object):
     def get_today_calories(self, user_id):
         cur = self.db.eating.find({
             'user_id': user_id,
-            'date': {"$gt": trunc_now()}
+            'date': {"$gt": u.trunc_now()}
         })
 
         total = 0
@@ -309,17 +324,7 @@ class CalculatorCalories(object):
         }
         self.db.products.insert_one(row)
 
-def get_text(msg):
-    return msg.get('text')
 
-def get_user_id(msg):
-    return msg.get('from', {}).get('id')
-
-def get_callback_data(msg):
-    return msg.get('data')
-
-def get_message_id(msg):
-    return msg.get('message', {}).get('message_id', -1)
 
 
 class Context(object):
@@ -339,7 +344,7 @@ class Context(object):
         text = reply.get('text', 'None :(')
         markup = None
         if 'buttons' in reply:
-            markup = do_markup(reply['buttons'])
+            markup = u.do_markup(reply['buttons'])
 
         if message_idf is None:
             self.bot.sendMessage(self.user_id, text, reply_markup=markup)
@@ -379,7 +384,7 @@ class Context(object):
     def process(self, msg):
 
         data = {
-            'text': get_text(msg),
+            'text': u.get_text(msg),
             'user_id': self.user_id
         }
 
@@ -393,7 +398,7 @@ class Context(object):
 
         data = {
             'user_id': self.user_id,
-            'cb_data': get_callback_data(msg),
+            'cb_data': u.get_callback_data(msg),
             'message_idf': message_idf
         }
 
@@ -419,7 +424,7 @@ class CcalBot(telepot.Bot):
         return self.user_context[user_id]
 
     def save_message(self, msg, skip_reply=False):
-        user_id = get_user_id(msg)
+        user_id = u.get_user_id(msg)
         msg_copy = msg.copy()
         msg_copy['date'] = datetime.datetime.utcnow()
         self.db.messages.insert_one(msg_copy)
@@ -430,7 +435,7 @@ class CcalBot(telepot.Bot):
     def on_chat_message(self, msg):
         self.save_message(msg, skip_reply=True)
 
-        user_id = get_user_id(msg)
+        user_id = u.get_user_id(msg)
         context = self.get_context(user_id)
         context.process(msg)
 
@@ -438,7 +443,7 @@ class CcalBot(telepot.Bot):
     def on_callback_query(self, msg):
         self.save_message(msg, skip_reply=True)
 
-        user_id = get_user_id(msg)
+        user_id = u.get_user_id(msg)
         context = self.get_context(user_id)
         context.process_callback(msg)
 
@@ -462,12 +467,13 @@ class CcalBot(telepot.Bot):
         print('Chosen Inline Result:', result_id, from_id, query_string)
 
 
-conn = pymongo.MongoClient(config.DB['host'], config.DB['port'])
-ccalories = CalculatorCalories(conn)
-bot = CcalBot(config.BOT_TOKEN, ccalories)
-bot.message_loop()
-print ('Listening ...')
+if __name__ == '__main__':
+    conn = pymongo.MongoClient(config.DB['host'], config.DB['port'])
+    ccalories = CalculatorCalories(conn)
+    bot = CcalBot(config.BOT_TOKEN, ccalories)
+    bot.message_loop()
+    print ('Listening ...')
 
-# Keep the program running.
-while 1:
-    time.sleep(10)
+    # Keep the program running.
+    while 1:
+        time.sleep(10)
