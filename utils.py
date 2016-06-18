@@ -2,6 +2,7 @@
 
 __author__ = 'ufian'
 
+import json
 import datetime
 from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
 
@@ -41,3 +42,16 @@ def get_callback_data(msg):
 
 def get_message_id(msg):
     return msg.get('message', {}).get('message_id', -1)
+
+def debug(debug):
+    def deco(func):
+        def wrapper(self, msg, *args, **kwargs):
+            if debug:
+                print '--------- {} ---------'.format(func.__name__)
+                print json.dumps(msg, indent=4)
+                print "\n" * 2
+
+            return func(self, msg, *args, **kwargs)
+
+        return wrapper
+    return deco
