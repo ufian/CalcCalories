@@ -9,13 +9,19 @@ class MainMenu(BaseChooseMenu):
     TYPE = 'Main'
 
     BUTTONS = [
-        (u'Поесть', u'EatChoose'),
-        (u'Готовое', u'Ready'),
-        (u'Приготовить', u'Cook'),
-        (u'Доесть', u'Finish'),
+        [
+            (u'Поесть', u'EatChoose'),
+            (u'Готовое', u'Ready'),
+            (u'Приготовить', u'Cook'),
+            (u'Доесть', u'Finish'),
+        ],
+        [
+            (u'Сегодня', u'Today'),
+            (u'Статистика', u'Stat'),
+        ]
     ]
 
-    MAIN_TEXT = u'Что делаеть?'
+    MAIN_TEXT = u'Что делать?'
 
     @classmethod
     def get_text(cls, context, data):

@@ -53,7 +53,7 @@ class BaseChooseMenu(BaseMenu):
     @classmethod
     def get(cls, context, data):
         if cls._KEYBOARD is None:
-            cls._KEYBOARD = [cls.BUTTONS] if cls.BUTTONS[0] is not list else cls.BUTTONS
+            cls._KEYBOARD = [cls.BUTTONS] if not isinstance(cls.BUTTONS[0], list) else cls.BUTTONS
             cls._DESTINATIONS = {cell[1] for row in cls._KEYBOARD for cell in row}
 
         if 'cb_data' in data and 'from' not in data:
