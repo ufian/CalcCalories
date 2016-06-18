@@ -10,6 +10,7 @@ import datetime
 import json
 
 import utils as u
+import menu as M
 
 from telepot.namedtuple import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardHide, ForceReply
 from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
@@ -17,9 +18,6 @@ from telepot.namedtuple import InlineQueryResultArticle, InlineQueryResultPhoto,
 
 DEBUG_MSG = False
 DEBUG_CTX = True
-
-
-
 
 def debug(func):
     def wrapper(self, msg, *args, **kwargs):
@@ -31,248 +29,6 @@ def debug(func):
         return func(self, msg, *args, **kwargs)
 
     return wrapper
-
-
-class MenuMeta(type):
-    def __new__(mcs, name, bases, attrs, **kwargs):
-        res = super(MenuMeta, mcs).__new__(mcs, name, bases, attrs)
-        if '__not_menu__' not in attrs:
-            MenuMeta.MENU.append(res)
-        return res
-
-    MENU = []
-
-
-class BaseMenu(object):
-    __not_menu__ = True
-    __metaclass__ = MenuMeta
-    MENU = dict()
-
-    TYPE = 'Base'
-
-    BACK_BUTTON = (u'Отмена', 'Main')
-
-
-    @classmethod
-    def init(cls):
-        for m in MenuMeta.MENU:
-            cls.MENU[m.TYPE] = m
-
-    @classmethod
-    def get(cls, context, data):
-        return {}
-
-class BaseChooseMenu(BaseMenu):
-    __not_menu__ = True
-
-    TEXT = ""
-    BUTTONS = None
-
-    _KEYBOARD = None
-    _DESTINATIONS = None
-
-    @classmethod
-    def get(cls, context, data):
-        if cls._KEYBOARD is None:
-            cls._KEYBOARD = [cls.BUTTONS] if cls.BUTTONS[0] is list else cls.BUTTONS
-            cls._DESTINATIONS = {cell[1] for row in cls._KEYBOARD for cell in row}
-
-        if 'cb_data' in data and 'from' not in data:
-            if data['cb_data'] in cls._DESTINATIONS:
-                context.set(data['cb_data'])
-                return None
-
-        text = None
-        if isinstance(cls.TEXT, basestring):
-            text = cls.TEXT
-        else:
-            text = cls.TEXT(context, data)
-
-        return {
-            'text': cls.TEXT,
-            'buttons': cls._KEYBOARD
-        }
-
-
-class MainMenu(BaseMenu):
-    TYPE = 'Main'
-
-    BUTTONS = [
-        (u'Поесть', u'EatChoose'),
-        (u'Готовое', u'Ready'),
-        (u'Приготовить', u'Cook'),
-        (u'Доесть', u'Finish'),
-    ]
-
-    MAIN_TEXT = u'Что делаеть?'
-
-    @classmethod
-    def get_text(cls, context, data):
-        parts = list()
-
-        if 'from_message' in data:
-            data.append(data['from_message'])
-            data.append('')
-
-        data.append(u"Сегодня съедено {0} ккал".format(context.ccalories.get_today_calories(context.user_id)))
-
-        return u"\n".join(parts)
-
-    TEXT = get_text
-
-
-    @classmethod
-    def get(cls, context, data):
-        if 'cb_data' in data and 'from' not in data:
-            if data['cb_data'] == u'EatChoose':
-                context.set(data['cb_data'])
-                return None
-
-        context.params = None
-        today = u"Сегодня съедено {0} ккал".format(context.ccalories.get_today_calories(context.user_id))
-        text = u'{0}\nЧто делаеть?'.format(today)
-        if 'from_message' in data:
-            text = u"{0}\n\n{1}".format(
-                data['from_message'],
-                text
-            )
-
-        return {
-            'text': text,
-            'buttons': [[
-            ]]
-        }
-
-
-
-class EatChooseMenu(BaseChooseMenu):
-    TYPE = 'EatChoose'
-
-    TEXT = u'Что вы хотите ввести'
-    BUTTONS = [
-        (u'Общую калорийность', 'EatC'),
-        (u'Вес и ккал за 100г',  'EatCW'),
-        BaseMenu.BACK_BUTTON
-    ]
-
-
-
-class EatCMenu(BaseMenu):
-    TYPE = 'EatC'
-
-    SAVE_BUTTON = (u'Сохранить', 'save')
-
-
-    @classmethod
-    def save(self, context):
-        row = context.params
-
-        context.ccalories.add_eating(
-            user_id=context.user_id,
-            product_id=None,
-            calories=row.get('calories'),
-            weight=row.get('weight')
-        )
-
-    @classmethod
-    def get(cls, context, data):
-        if 'cb_data' in data and 'from' not in data:
-            if data['cb_data'] in ('save', 'back'):
-                context.set('Main')
-                return None
-
-        if context.params is None:
-            context.params = dict()
-            return {
-                'text': u'Введите общую калорийность съеденого',
-                'buttons': [[
-                    cls.BACK_BUTTON
-                ]]
-            }
-
-        elif 'text' in data:
-            if 'calories' not in context.params:
-                calories = u.get_int(data['text'])
-                if calories is None or calories <= 0:
-                    return {
-                        'text': u'Неправильное число. Введите общую калорийность съеденого',
-                        'buttons': [[
-                            cls.BACK_BUTTON,
-                        ]]
-                    }
-                context.params['calories'] = calories
-                cls.save(context)
-                data['from_message'] = u'Сохранено'
-                context.set('Main')
-                return None
-
-
-class EatCWMenu(BaseMenu):
-    TYPE = 'EatCW'
-
-    SAVE_BUTTON = (u'Сохранить', 'save')
-
-
-    @classmethod
-    def save(self, context):
-        row = context.params
-
-        context.ccalories.add_eating(
-            user_id=context.user_id,
-            product_id=None,
-            calories=row.get('calories'),
-            weight=row.get('weight')
-        )
-
-    @classmethod
-    def get(cls, context, data):
-        if 'cb_data' in data and 'from' not in data:
-            if data['cb_data'] in ('save', 'back'):
-                context.set('Main')
-                return None
-
-        if context.params is None:
-            context.params = dict()
-            return {
-                'text': u'Введите калорийность за 100 грамм',
-                'buttons': [[
-                    cls.BACK_BUTTON
-                ]]
-            }
-        elif 'text' in data:
-            if 'calories' not in context.params:
-                calories = u.get_int(data['text'])
-                if calories is None or calories <= 0:
-                    return {
-                        'text': u'Неправильное число. Введите калорийность за 100 грамм',
-                        'buttons': [[
-                            cls.BACK_BUTTON,
-                        ]]
-                    }
-                context.params['calories'] = calories
-
-                return {
-                    'text': u'Введите вес в граммах',
-                    'buttons': [[
-                        cls.BACK_BUTTON,
-                    ]]
-                }
-            elif 'weight' not in context.params:
-                weight = u.get_int(data['text'])
-                if weight is None or weight <= 0:
-                    return {
-                        'text': u'Неправильное число. Введите вес в граммах',
-                        'buttons': [[
-                            cls.BACK_BUTTON,
-                        ]]
-                    }
-
-                context.params['weight'] = weight
-                cls.save(context)
-                data['from_message'] = u'Сохранено'
-                context.set('Main')
-                return None
-
 
 
 class CalculatorCalories(object):
@@ -365,15 +121,16 @@ class Context(object):
                     state=self.state,
                     data=data
                 )
-            menu = BaseMenu.MENU.get(state)
+            menu = M.get(state)
             if menu is None:
-                raise Exception
+                menu = M.get('Main')
+                state = 'Main'
 
             reply = menu.get(self, data)
             if reply is not None:
                 return reply
 
-            if state == self.state:
+            if state == self.state and state != 'Main':
                 raise Exception
 
             data['from'] = state
@@ -413,9 +170,10 @@ class CcalBot(telepot.Bot):
         self.ccalories = ccalories
         self.db = ccalories.db
 
+        M.init()
         self.user_context = dict()
 
-        BaseMenu.init()
+
 
     def get_context(self, user_id):
         if user_id not in self.user_context:

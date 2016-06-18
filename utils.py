@@ -7,12 +7,12 @@ from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
 
 
 def trunc_date(date):
-    return datetime.datetime.combine(date.date(), datetime.time(0)) - datetime.timedelta(0, 3*60*60)
+    return datetime.datetime.combine(date.date() - datetime.timedelta(0, 3*60*60), datetime.time(0))
 
 def trunc_now():
     return trunc_date(datetime.datetime.now())
 
-def do_markup(keys):
+def do_markup(keys=None):
     if keys is None:
         return None
 
