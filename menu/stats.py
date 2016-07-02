@@ -44,7 +44,7 @@ class StatMonthMenu(BaseChooseMenu):
     def get_text(cls, context, data):
         parts = list()
 
-        for row in context.ccalories.get_stat_data(context.user_id):
+        for row in context.ccalories.get_stat_data(context.user_id, days=31):
             date = row.get('date')
             calories = row.get('calories')
 
@@ -82,8 +82,8 @@ class StatMenu(BaseChooseMenu):
             return sum(rows) // len(rows)
 
 
-        week_rows = context.ccalories.get_stat_data(context.user_id, days=7)
-        month_rows = context.ccalories.get_stat_data(context.user_id, days=30)
+        week_rows = context.ccalories.get_stat_data(context.user_id, days=7, skip_days=1)
+        month_rows = context.ccalories.get_stat_data(context.user_id, days=30, skip_days=1)
 
         parts.append(u'Среднее за неделю {} ккал'.format(get_average(week_rows)))
         parts.append(u'Среднее за месяц {} ккал'.format(get_average(month_rows)))
