@@ -5,7 +5,7 @@ __author__ = 'ufian'
 from base import BaseMenu, BaseChooseMenu
 from main import MainMenu
 from eat import EatChooseMenu, EatCMenu, EatCWMenu
-from stats import TodayMenu
+from stats import TodayMenu, StatMenu, StatMonthMenu
 
 def init():
     BaseMenu.init()

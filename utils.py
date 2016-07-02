@@ -10,11 +10,15 @@ from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
 def trunc_date(date):
     return datetime.datetime.combine(date.date() - datetime.timedelta(hours=3), datetime.time(0))
 
-def trunc_now():
-    return trunc_date(datetime.datetime.now())
+def trunc_by_now(days=0):
+    return trunc_date(datetime.datetime.now() + datetime.timedelta(days=days))
 
 def get_time(date):
     return (date + datetime.timedelta(hours=3)).strftime("%H:%M")
+
+def get_date(date):
+    return (date + datetime.timedelta(hours=3)).strftime("%d.%m.%Y")
+
 
 def do_markup(keys=None):
     if keys is None:

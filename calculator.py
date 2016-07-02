@@ -4,6 +4,7 @@ __author__ = 'ufian'
 
 import datetime
 import utils as u
+from collections import defaultdict
 
 
 class CalculatorCalories(object):
@@ -21,17 +22,29 @@ class CalculatorCalories(object):
         res = self.db.eating.insert_one(row)
         return res.inserted_id
 
-    def get_today_list(self, user_id):
-        return self.db.eating.find({
+    def get_list(self, user_id, days=0, c_days=1):
+        result = defaultdict(list)
+
+        it = self.db.eating.find({
             'user_id': user_id,
-            'date': {"$gt": u.trunc_now()}
+            'date': {"$gt": u.trunc_by_now(-days), "$lte": u.trunc_by_now(-days + c_days)}
         })
 
-    def get_today_calories(self, user_id):
+        dt_now = u.trunc_by_now()
 
+        for row in it:
+            dt = (dt_now - u.trunc_date(row['date'])).days
+            result[dt].append(row)
+
+        return result
+
+    def _get_calories(self, rows=None):
         total = 0
 
-        for row in self.get_today_list(user_id):
+        if not rows:
+            return total
+
+        for row in rows:
             weight = row.get('weight')
             calories = row.get('calories')
 
@@ -45,6 +58,25 @@ class CalculatorCalories(object):
 
         return total
 
+    def get_today_calories(self, user_id):
+        res = self.get_list(user_id, days=0, c_days=1)
+        return self._get_calories(res.get(0))
+
+    def get_today_list(self, user_id):
+        res = self.get_list(user_id, days=0, c_days=1)
+        return res.get(0, [])
+
+    def get_stat_data(self, user_id, days=30):
+        res_dict = self.get_list(user_id, days=days, c_days=days)
+        result = list()
+        dt_now = u.trunc_by_now()
+        for d in xrange(29, -1, -1):
+            result.append({
+                'days': d,
+                'date': dt_now - datetime.timedelta(days=d),
+                'calories': self._get_calories(res_dict.get(d))
+            })
+        return result
 
     def get_products(self, user_id):
         return list(self.db.products.find({'user_id': user_id}))
