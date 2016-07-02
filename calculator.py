@@ -67,7 +67,7 @@ class CalculatorCalories(object):
         return res.get(0, [])
 
     def get_stat_data(self, user_id, days=30, skip_days=0):
-        res_dict = self.get_list(user_id, days=days + skip_days, c_days=days)
+        res_dict = self.get_list(user_id, days=days + skip_days, c_days=days + 1)
         result = list()
         dt_now = u.trunc_by_now()
         for d in xrange(29, -1, -1):

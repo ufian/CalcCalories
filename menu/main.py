@@ -35,7 +35,7 @@ class MainMenu(BaseChooseMenu):
 
 
         parts.append(u"Сегодня съедено {0} ккал".format(context.ccalories.get_today_calories(context.user_id)))
-        parts.append(u"Обновлено: {}".format(datetime.datetime.now()))
+        parts.append(u"Обновлено: {}".format(datetime.datetime.utcnow()))
 
         return u"\n".join(parts)
 
