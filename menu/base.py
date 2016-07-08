@@ -50,6 +50,8 @@ class BaseChooseMenu(BaseMenu):
     _KEYBOARD = None
     _DESTINATIONS = None
 
+    MESSAGE_HANDLER = None
+
     @classmethod
     def get(cls, context, data):
         if cls._KEYBOARD is None:
@@ -60,6 +62,9 @@ class BaseChooseMenu(BaseMenu):
             if data['cb_data'] in cls._DESTINATIONS:
                 context.set(data['cb_data'])
                 return None
+
+        if cls.MESSAGE_HANDLER is not None and 'text' in data:
+            cls.MESSAGE_HANDLER(context, data)
 
         text = None
         if isinstance(cls.TEXT, basestring):

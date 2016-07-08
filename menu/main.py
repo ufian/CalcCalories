@@ -24,6 +24,33 @@ class MainMenu(BaseChooseMenu):
     MAIN_TEXT = u'Что делать?'
 
     @classmethod
+    def process_message(cls, context, data):
+        text = data.get('text', u'')
+        sep = u' по '
+        result = u'Ошибка'
+        if sep in text:
+            weight, calories = text.split(sep, 1)
+            try:
+                weight = int(weight)
+                calories = int(calories)
+
+                context.ccalories.add_eating(
+                    user_id=context.user_id,
+                    product_id=None,
+                    calories=calories,
+                    weight=weight
+                )
+
+                result = u'Сохранено'
+            except ValueError:
+                result = u'Не сохранено. Проблема с целыми числами.'
+            except:
+                pass
+
+        data['from_message'] = result
+
+
+    @classmethod
     def get_text(cls, context, data):
         parts = list()
         context.params = None
@@ -40,6 +67,7 @@ class MainMenu(BaseChooseMenu):
         return u"\n".join(parts)
 
     TEXT = get_text
+    MESSAGE_HANDLER = process_message
 
 
     # @classmethod
