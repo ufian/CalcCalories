@@ -15,6 +15,95 @@ class EatChooseMenu(BaseChooseMenu):
         BaseMenu.BACK_BUTTON
     ]
 
+
+class BaseEatMenu(BaseMenu):
+    __not_menu__ = True
+
+    @classmethod
+    def get_init(cls, context, data):
+        return {
+            'text': u'Введите общую калорийность съеденого',
+            'buttons': [[
+                cls.BACK_BUTTON
+            ]]
+        }
+
+    @classmethod
+    def q_full_calories(cls, context, data):
+        return {
+            'text': u'Введите общую калорийность съеденого',
+            'buttons': [[
+                cls.BACK_BUTTON
+            ]]
+        }
+
+    @classmethod
+    def q_calories_by_weight(cls, context, data):
+        return {
+            'text': u'Введите калорийность за 100 грамм',
+            'buttons': [[
+                cls.BACK_BUTTON
+            ]]
+        }
+
+    @classmethod
+    def q_weight(cls, context, data):
+        return {
+            'text': u'Введите вес в граммах',
+            'buttons': [[
+                cls.BACK_BUTTON,
+            ]]
+        }
+
+    @classmethod
+    def getter_int(cls, context, data):
+        if 'text' not in data:
+            return None, None
+
+        num = u.get_int(data['text'])
+
+        if num is None or num <= 0:
+            return None, u'Неправильное число'
+
+        return num, None
+
+    STEPS = [
+        ('calories', q_calories_by_weight, getter_int),
+        ('weight', q_weight, getter_int)
+    ]
+
+
+    @classmethod
+    def get(cls, context, data):
+        if 'cb_data' in data and 'from' not in data:
+            if data['cb_data'] in ('save', 'back'):
+                context.set('Main')
+                return None
+
+        if context.params is None:
+            context.params = dict()
+
+        for step in cls.STEPS:
+            param, question, getter = step
+
+            if param not in context.params:
+                val, err = getter(context, data)
+
+                if val is not None:
+                    context.params[param] = val
+                    continue
+
+                res = question(context, data)
+                if err is not None:
+                    res['text']  = u"{err}\n{text}".format(
+                        err,
+                        res['text']
+                    )
+
+                return res
+
+
+
 class EatCMenu(BaseMenu):
     TYPE = 'EatC'
 
