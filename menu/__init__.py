@@ -6,6 +6,7 @@ from base import BaseMenu, BaseChooseMenu
 from main import MainMenu
 from eat import EatChooseMenu, EatCMenu, EatCWMenu
 from stats import TodayMenu, StatMenu, StatMonthMenu
+from ready import ReadyChooseMenu
 
 def init():
     BaseMenu.init()

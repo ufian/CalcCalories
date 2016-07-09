@@ -12,8 +12,6 @@ class MainMenu(BaseChooseMenu):
         [
             (u'Поесть', u'EatChoose'),
             (u'Готовое', u'Ready'),
-            (u'Приготовить', u'Cook'),
-            (u'Доесть', u'Finish'),
         ],
         [
             (u'Сегодня', u'Today'),
@@ -25,6 +23,9 @@ class MainMenu(BaseChooseMenu):
 
     @classmethod
     def process_message(cls, context, data):
+        if 'from_message' in data:
+            return
+
         text = data.get('text', u'')
         sep = u' по '
         result = u'Ошибка'
