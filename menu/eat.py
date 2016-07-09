@@ -56,6 +56,17 @@ class BaseEatMenu(BaseMenu):
         }
 
     @classmethod
+    def save(self, context):
+        row = context.params
+
+        context.ccalories.add_eating(
+            user_id=context.user_id,
+            product_id=None,
+            calories=row.get('calories'),
+            weight=row.get('weight')
+        )
+
+    @classmethod
     def getter_int(cls, context, data):
         if 'text' not in data:
             return None, None
@@ -67,11 +78,7 @@ class BaseEatMenu(BaseMenu):
 
         return num, None
 
-    STEPS = [
-        ('calories', q_calories_by_weight, getter_int),
-        ('weight', q_weight, getter_int)
-    ]
-
+    STEPS = []
 
     @classmethod
     def get(cls, context, data):
@@ -96,16 +103,39 @@ class BaseEatMenu(BaseMenu):
                 res = question(context, data)
                 if err is not None:
                     res['text']  = u"{err}\n{text}".format(
-                        err,
-                        res['text']
+                        err=err,
+                        text=res['text']
                     )
 
                 return res
 
+        cls.save(context)
+        data['from_message'] = u'Сохранено'
+        context.set('Main')
+        return None
 
 
-class EatCMenu(BaseMenu):
+class EatCMenu(BaseEatMenu):
     TYPE = 'EatC'
+
+    STEPS = [
+        ('calories', BaseEatMenu.q_full_calories, BaseEatMenu.getter_int),
+        ('weight', BaseEatMenu.q_weight, BaseEatMenu.getter_int)
+    ]
+
+class EatCWMenu(BaseEatMenu):
+    TYPE = 'EatCW'
+
+    STEPS = [
+        ('calories', BaseEatMenu.q_calories_by_weight, BaseEatMenu.getter_int),
+        ('weight', BaseEatMenu.q_weight, BaseEatMenu.getter_int)
+    ]
+
+
+'''class EatCMenu(BaseMenu):
+    TYPE = 'EatC'
+
+
 
     SAVE_BUTTON = (u'Сохранить', 'save')
 
@@ -227,4 +257,4 @@ class EatCWMenu(BaseMenu):
 
         data['from_message'] = u'Ошибка'
         context.set('Main')
-        return None
+        return None'''
