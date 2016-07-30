@@ -85,7 +85,7 @@ class BaseEatMenu(BaseMenu):
     @classmethod
     def get(cls, context, data):
         if 'cb_data' in data and 'from' not in data:
-            if data['cb_data'] in ('save', 'back'):
+            if data['cb_data'] in ('save', 'back', 'Main'):
                 context.set('Main')
                 return None
 
