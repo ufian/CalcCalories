@@ -48,20 +48,20 @@ class MainMenu(BaseChooseMenu):
                 result = u'Не сохранено. Проблема с целыми числами.'
             except:
                 pass
-            
-        try:
-            calories = int(text)
-            context.ccalories.add_eating(
-                user_id=context.user_id,
-                product_id=None,
-                calories=calories,
-                weight=None
-            )
-            result = u'Сохранено'
-        except ValueError:
-            result = u'Не сохранено. Проблема с целыми числами.'
-        except:
-            pass
+        else:
+            try:
+                calories = int(text)
+                context.ccalories.add_eating(
+                    user_id=context.user_id,
+                    product_id=None,
+                    calories=calories,
+                    weight=None
+                )
+                result = u'Сохранено'
+            except ValueError:
+                result = u'Не сохранено. Проблема с целыми числами.'
+            except:
+                pass
 
         data['from_message'] = result
 
