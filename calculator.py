@@ -79,7 +79,7 @@ class CalculatorCalories(object):
         return result
 
     def get_products(self, user_id):
-        return list(self.db.products.find({'user_id': user_id}))
+        return list(self.db.products.find({'user_id': user_id}).sort("name"))
 
     def add_product(self, user_id, name, calories):
         row = {
