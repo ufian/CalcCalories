@@ -8,7 +8,7 @@ from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
 
 
 def trunc_date(date):
-    return datetime.datetime.combine(date.date() - datetime.timedelta(hours=3), datetime.time(0))
+    return datetime.datetime.combine(date.date() + datetime.timedelta(hours=7), datetime.time(0))
 
 def trunc_by_now(days=0):
     return trunc_date(datetime.datetime.utcnow() + datetime.timedelta(days=days))
