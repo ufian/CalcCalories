@@ -6,18 +6,24 @@ import json
 import datetime
 from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
 
+DELTA = 3
+TIMEZONE = -7
+
+def utc_date(date):
+    return date - datetime.timedelta(hours=TIMEZONE - DELTA)
 
 def trunc_date(date):
-    return datetime.datetime.combine(date.date() + datetime.timedelta(hours=7), datetime.time(0))
+    return datetime.datetime.combine((date + datetime.timedelta(hours=TIMEZONE - DELTA)).date(), datetime.time(0))
 
 def trunc_by_now(days=0):
+    #print 'Now', days, datetime.datetime.utcnow(), trunc_date(datetime.datetime.utcnow() + datetime.timedelta(days=days))
     return trunc_date(datetime.datetime.utcnow() + datetime.timedelta(days=days))
 
 def get_time(date):
-    return (date + datetime.timedelta(hours=3)).strftime("%H:%M")
+    return (date + datetime.timedelta(hours=TIMEZONE)).strftime("%H:%M")
 
 def get_date(date):
-    return (date + datetime.timedelta(hours=3)).strftime("%d.%m.%Y")
+    return (date + datetime.timedelta(hours=TIMEZONE)).strftime("%d.%m.%Y")
 
 
 def do_markup(keys=None):

@@ -25,15 +25,21 @@ class CalculatorCalories(object):
     def get_list(self, user_id, days=0, c_days=1):
         result = defaultdict(list)
 
+
+        from_dt = u.utc_date(u.trunc_by_now(-days))
+        to_dt = u.utc_date(u.trunc_by_now(-days + c_days))
+
         it = self.db.eating.find({
             'user_id': user_id,
-            'date': {"$gt": u.trunc_by_now(-days), "$lte": u.trunc_by_now(-days + c_days)}
+            'date': {"$gt": from_dt, "$lte": to_dt}
         })
+        #print from_dt, '< dt <=', to_dt
 
         dt_now = u.trunc_by_now()
 
         for row in it:
             dt = (dt_now - u.trunc_date(row['date'])).days
+            #print row['date'], ':', dt_now, u.trunc_date(row['date']), dt
             result[dt].append(row)
 
         return result
