@@ -8,7 +8,6 @@ from collections import defaultdict
 
 from model import Eating, Product
 
-
 class CalculatorCalories(object):
     def __init__(self, conn):
         self.db = conn.ccal
@@ -24,7 +23,6 @@ class CalculatorCalories(object):
         
     def get_list(self, user_id, days=0, c_days=1):
         result = defaultdict(list)
-
 
         from_dt = u.utc_date(u.trunc_by_now(-days))
         to_dt = u.utc_date(u.trunc_by_now(-days + c_days))
@@ -86,12 +84,11 @@ class CalculatorCalories(object):
         return result
 
     def get_products(self, user_id):
-        return list(self.db.products.find({'user_id': user_id}).sort("name"))
+        return list(Product.objects.filter(user_id=user_id).order_by("+name"))
 
     def add_product(self, user_id, name, calories):
-        row = {
-            'user_id': user_id,
-            'name': name,
-            'calories': calories
-        }
-        self.db.products.insert_one(row)
+        return Product(
+            user_id=user_id,
+            name=name,
+            calories=calories
+        ).save()
