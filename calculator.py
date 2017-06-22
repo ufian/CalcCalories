@@ -6,22 +6,22 @@ import datetime
 import utils as u
 from collections import defaultdict
 
+from model import Eating, Product
+
 
 class CalculatorCalories(object):
     def __init__(self, conn):
         self.db = conn.ccal
 
     def add_eating(self, user_id, product_id=None, weight=None, calories=None):
-        row = {
-            'user_id': user_id,
-            'product_id': product_id,
-            'weight': weight,
-            'calories': calories,
-            'date': datetime.datetime.utcnow()
-        }
-        res = self.db.eating.insert_one(row)
-        return res.inserted_id
-
+        return Eating(
+            user_id=user_id,
+            product_id=product_id,
+            weight=weight,
+            calories=calories,
+            date=datetime.datetime.utcnow()
+        ).save()
+        
     def get_list(self, user_id, days=0, c_days=1):
         result = defaultdict(list)
 
@@ -29,16 +29,17 @@ class CalculatorCalories(object):
         from_dt = u.utc_date(u.trunc_by_now(-days))
         to_dt = u.utc_date(u.trunc_by_now(-days + c_days))
 
-        it = self.db.eating.find({
-            'user_id': user_id,
-            'date': {"$gt": from_dt, "$lte": to_dt}
-        })
+        it = Eating.objects.filter(
+            user_id=user_id,
+            date__gt=from_dt,
+            date__lte=to_dt
+        )
         #print from_dt, '< dt <=', to_dt
 
         dt_now = u.trunc_by_now()
 
         for row in it:
-            dt = (dt_now - u.trunc_date(row['date'])).days
+            dt = (dt_now - u.trunc_date(row.date)).days
             #print row['date'], ':', dt_now, u.trunc_date(row['date']), dt
             result[dt].append(row)
 
@@ -51,8 +52,8 @@ class CalculatorCalories(object):
             return total
 
         for row in rows:
-            weight = row.get('weight')
-            calories = row.get('calories')
+            weight = row.weight
+            calories = row.calories
 
             if calories is None:
                 continue

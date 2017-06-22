@@ -6,6 +6,7 @@ import config
 import telepot
 import time
 import pymongo
+import mongoengine as me
 import datetime
 
 import utils as u
@@ -77,7 +78,7 @@ class CcalBot(telepot.Bot):
 
 
 if __name__ == '__main__':
-    conn = pymongo.MongoClient(config.DB['host'], config.DB['port'])
+    conn = me.connect(config.DB['db'], host=config.DB['host'], port=config.DB['port'])
     ccalories = CalculatorCalories(conn)
     bot = CcalBot(config.BOT_TOKEN, ccalories)
     bot.message_loop()
