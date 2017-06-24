@@ -19,3 +19,10 @@ class Eating(me.Document):
     weight = me.IntField()
     calories = me.IntField()
     date = me.DateTimeField(required=True)
+
+class UserConfig(me.Document):
+    meta = {'collection': 'user_configs'}
+    
+    user_id = me.IntField(required=True)
+    params = me.DictField()
+    context = me.DictField()

@@ -31,68 +31,68 @@ class CalculatorCalories(object):
         self.db = conn.ccal
 
         
-    def get_list(self, user_id, days=0, c_days=1):
-        result = defaultdict(list)
+def get_list(user_id, days=0, c_days=1):
+    result = defaultdict(list)
 
-        from_dt = u.utc_date(u.trunc_by_now(-days))
-        to_dt = u.utc_date(u.trunc_by_now(-days + c_days))
+    from_dt = u.utc_date(u.trunc_by_now(-days))
+    to_dt = u.utc_date(u.trunc_by_now(-days + c_days))
 
-        it = Eating.objects.filter(
-            user_id=user_id,
-            date__gt=from_dt,
-            date__lte=to_dt
-        )
-        #print from_dt, '< dt <=', to_dt
+    it = Eating.objects.filter(
+        user_id=user_id,
+        date__gt=from_dt,
+        date__lte=to_dt
+    )
+    #print from_dt, '< dt <=', to_dt
 
-        dt_now = u.trunc_by_now()
+    dt_now = u.trunc_by_now()
 
-        for row in it:
-            dt = (dt_now - u.trunc_date(row.date)).days
-            #print row['date'], ':', dt_now, u.trunc_date(row['date']), dt
-            result[dt].append(row)
+    for row in it:
+        dt = (dt_now - u.trunc_date(row.date)).days
+        #print row['date'], ':', dt_now, u.trunc_date(row['date']), dt
+        result[dt].append(row)
 
-        return result
+    return result
 
-    def _get_calories(self, rows=None):
-        total = 0
+def _get_calories(rows=None):
+    total = 0
 
-        if not rows:
-            return total
-
-        for row in rows:
-            weight = row.weight
-            calories = row.calories
-
-            if calories is None:
-                continue
-
-            if weight is not None:
-                total += calories * weight // 100
-            else:
-                total += calories
-
+    if not rows:
         return total
 
-    def get_today_calories(self, user_id):
-        res = self.get_list(user_id, days=0, c_days=1)
-        return self._get_calories(res.get(0))
+    for row in rows:
+        weight = row.weight
+        calories = row.calories
 
-    def get_today_list(self, user_id):
-        res = self.get_list(user_id, days=0, c_days=1)
-        return res.get(0, [])
+        if calories is None:
+            continue
 
-    def get_stat_data(self, user_id, days=30, skip_days=0):
-        res_dict = self.get_list(user_id, days=days + skip_days, c_days=days + 1)
-        result = list()
-        dt_now = u.trunc_by_now()
-        for d in xrange(29, -1, -1):
-            result.append({
-                'days': d,
-                'date': dt_now - datetime.timedelta(days=d),
-                'calories': self._get_calories(res_dict.get(d))
-            })
-        return result
+        if weight is not None:
+            total += calories * weight // 100
+        else:
+            total += calories
 
-    def get_products(self, user_id):
-        return list(Product.objects.filter(user_id=user_id).order_by("+name"))
+    return total
+
+def get_today_calories(user_id):
+    res = get_list(user_id, days=0, c_days=1)
+    return _get_calories(res.get(0))
+
+def get_today_list(user_id):
+    res = get_list(user_id, days=0, c_days=1)
+    return res.get(0, [])
+
+def get_stat_data(user_id, days=30, skip_days=0):
+    res_dict = get_list(user_id, days=days + skip_days, c_days=days + 1)
+    result = list()
+    dt_now = u.trunc_by_now()
+    for d in xrange(29, -1, -1):
+        result.append({
+            'days': d,
+            'date': dt_now - datetime.timedelta(days=d),
+            'calories': _get_calories(res_dict.get(d))
+        })
+    return result
+
+def get_products(user_id):
+    return list(Product.objects.filter(user_id=user_id).order_by("+name"))
 
