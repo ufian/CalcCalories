@@ -4,6 +4,7 @@ __author__ = 'ufian'
 
 from base import BaseMenu, BaseChooseMenu
 import utils as u
+import calculator as calc
 
 class EatChooseMenu(BaseChooseMenu):
     TYPE = 'EatChoose'
@@ -59,7 +60,7 @@ class BaseEatMenu(BaseMenu):
     def save(self, context):
         row = context.params
 
-        context.ccalories.add_eating(
+        calc.add_eating(
             user_id=context.user_id,
             product_id=None,
             calories=row.get('calories'),

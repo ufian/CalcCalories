@@ -4,6 +4,7 @@ __author__ = 'ufian'
 
 from base import BaseMenu, BaseChooseMenu
 import utils as u
+import calculator as calc
 
 class ReadyChooseMenu(BaseChooseMenu):
     TYPE = 'Ready'
@@ -56,7 +57,7 @@ class ReadyAddMenu(BaseMenu):
     def save(self, context):
         row = context.params
 
-        context.ccalories.add_product(
+        calc.add_product(
             user_id=context.user_id,
             name=row.get('name'),
             calories=row.get('calories')
@@ -139,10 +140,7 @@ class ReadyViewMenu(BaseChooseMenu):
         parts = list()
 
         for row in context.ccalories.get_products(context.user_id):
-            name = row.get('name')
-            calories = row.get('calories')
-
-            parts.append(u"{0}: {1} ккал".format(name, calories))
+            parts.append(u"{0}: {1} ккал".format(row.name, row.calories))
 
         return u"\n".join(parts)
 

@@ -4,6 +4,7 @@ __author__ = 'ufian'
 
 from base import BaseChooseMenu
 import datetime
+import calculator as calc
 
 class MainMenu(BaseChooseMenu):
     TYPE = 'Main'
@@ -36,7 +37,7 @@ class MainMenu(BaseChooseMenu):
                 weight = int(weight)
                 calories = int(calories)
 
-                context.ccalories.add_eating(
+                calc.add_eating(
                     user_id=context.user_id,
                     product_id=None,
                     calories=calories,
@@ -51,7 +52,7 @@ class MainMenu(BaseChooseMenu):
         else:
             try:
                 calories = int(text)
-                context.ccalories.add_eating(
+                calc.add_eating(
                     user_id=context.user_id,
                     product_id=None,
                     calories=calories,
