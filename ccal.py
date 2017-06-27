@@ -10,6 +10,9 @@ import datetime
 
 from telepot.loop import MessageLoop
 from telepot.delegate import per_chat_id, create_open, pave_event_space
+from telepot.namedtuple import InlineQueryResultArticle, InputTextMessageContent, \
+    InlineKeyboardMarkup, InlineKeyboardButton, \
+    ReplyKeyboardMarkup, KeyboardButton
 
 import utils as u
 import menu as M
@@ -86,23 +89,19 @@ def get_connect():
     return me.connect(config.DB['db'], host=config.DB['host'], port=config.DB['port'])
 
 class BaseStage(object):
+    DEFAULT = 'default'
+    STAGE = None
+    
     def __init__(self, session):
         self.session = session
-        
+
     @property
     def user_id(self):
         return self.session.user_id
-
-    def sendMessage(self, *args, **kwargs):
-        self.session.sender.sendMessage(*args, **kwargs)
-
-    def on_chat_message(self, msg, text):
-        pass
     
-    def on_callback_query(self, msg, cb_data):
-        pass
-    
-class DefaultStage(BaseStage):
+    @property
+    def context(self):
+        return self.session.context
 
     def _today_text(self):
         return u"Сегодня съедено {0} ккал".format(
@@ -115,28 +114,75 @@ class DefaultStage(BaseStage):
             date=u.get_date(udt),
             time=u.get_time(udt)
         )
-        
-    def main(self, message=None):
+
+    def base_keyboard(self):
+        return InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(text=u'Поесть', callback_data=u'eat|main'),
+                    InlineKeyboardButton(text=u'Продукты', callback_data=u'products|main'),
+                ],
+                [
+                    InlineKeyboardButton(text=u'Сегодня', callback_data=u'today|main'),
+                    InlineKeyboardButton(text=u'Статистика', callback_data=u'stat|main'),
+                ],
+            ]
+        )
+
+    def base_message(self, message=None, update=False):
         parts = list()
         if message:
             parts.extend([message, u''])
 
         parts.append(self._today_text())
         parts.append(self._last_update())
+    
+        msg = u"\n".join(parts)
         
-        self.sendMessage(u"\n".join(parts))
+        if update and 'last_message' in self.context:
+            return self.editMessageText(self.context['last_message'], msg, reply_markup=self.base_keyboard())
+            
+        return self.sendMessage(msg, reply_markup=self.base_keyboard())
+
+    def sendMessage(self, *args, **kwargs):
+        res = self.session.sender.sendMessage(*args, **kwargs)
+        self.context['last_message'] = (res['chat']['id'], res['message_id'])
+        
+        return res
+    
+    def editMessageText(self, *args, **kwargs):
+        return self.session.bot.editMessageText(*args, **kwargs)
 
     def on_chat_message(self, msg, text):
-        print "On chat default"
-        self.main()
+        pass
     
     def on_callback_query(self, msg, cb_data):
         pass
+    
+class DefaultStage(BaseStage):
+    STAGE = BaseStage.DEFAULT
+
+    def on_chat_message(self, msg, text):
+        print "On chat default"
+        res = self.base_message()
+        
+        # {u'date': 1498604286,
+        #  u'text': u'\u0421\u0435\u0433\u043e\u0434\u043d\u044f \u0441\u044a\u0435\u0434\u0435\u043d\u043e 0 \u043a\u043a\u0430\u043b\n\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u043e: 15:59 27.06.2017',
+        #  u'from': {u'username': u'hsetestbot', u'first_name': u'nonamebot', u'id': 161113648},
+        #  u'message_id': 114,
+        #  u'chat': {u'username': u'Ufian', u'first_name': u'Mikhail', u'last_name': u'Ufian', u'type': u'private', u'id': 113239144}}
+        
+    def on_callback_query(self, msg, cb_data):
+        pass
+
+class EatSession(BaseStage):
+    STAGE = 'eat'
+    
 
 
 class EatSession(telepot.helper.ChatHandler):
     STAGES = {
-        'default': DefaultStage
+        BaseStage.DEFAULT: DefaultStage
     }
 
     @property
@@ -147,10 +193,10 @@ class EatSession(telepot.helper.ChatHandler):
     def db(self):
         return getattr(get_connect(), config.DB['db'])
     
-    def stage(self):
-        stage = self.context.get('stage', 'default')
+    def stage(self, new_stage=None):
+        stage = new_stage or self.context.get('stage', BaseStage.DEFAULT)
         if stage not in self.STAGES:
-            stage = 'default'
+            stage = BaseStage.DEFAULT
             
         self.context['stage'] = stage
         return self.STAGES[stage](self)
@@ -184,11 +230,20 @@ class EatSession(telepot.helper.ChatHandler):
         
     def on_callback_query(self, msg):
         self.save_message(msg, skip_reply=True)
+        cb_data = u.get_callback_data(msg)
+        stage, sep, cb_data = cb_data.partition('|')
+        if sep != '|':
+            cb_data = stage
+            stage = None
 
-        self.stage().on_callback_query(msg, u.get_callback_data(msg))
+        self.stage(stage).on_callback_query(msg, cb_data)
     
     
     def on_close(self, ex):
+        # BaseStage.DEFAULT -> fix message
+        if 'last_message' in self.context:
+            self.stage(BaseStage.DEFAULT).base_message('Finish', update=True)
+        
         self.user_config.context = dict()
         self.user_config.save()
 
