@@ -50,11 +50,17 @@ def get_text(msg):
 def get_user_id(msg):
     return msg.get('from', {}).get('id')
 
+def get_chat_id(msg):
+    return msg.get('chat', {}).get('id')
+
 def get_callback_data(msg):
     return msg.get('data')
 
 def get_message_id(msg):
-    return msg.get('message', {}).get('message_id', -1)
+    return msg.get('message_id', -1)
+
+def get_edit_id(msg):
+    return (get_chat_id(msg), get_message_id(msg))
 
 def debug(debug):
     def deco(func):

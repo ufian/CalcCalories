@@ -21,10 +21,7 @@ import calculator as calc
 def get_connect():
     return me.connect(config.DB['db'], host=config.DB['host'], port=config.DB['port'])
 
-class BaseStage(object):
-    DEFAULT = 'default'
-    STAGE = None
-    
+class SessionMixin(object):
     def __init__(self, session):
         self.session = session
 
@@ -35,6 +32,21 @@ class BaseStage(object):
     @property
     def context(self):
         return self.session.context
+
+    def sendMessage(self, *args, **kwargs):
+        res = self.session.sender.sendMessage(*args, **kwargs)
+        self.context['last_message'] = u.get_edit_id(res)
+        
+        return res
+    
+    def editMessageText(self, *args, **kwargs):
+        print args, kwargs
+        return self.session.bot.editMessageText(*args, **kwargs)
+
+    
+class BaseStage(SessionMixin):
+    DEFAULT = 'default'
+    STAGE = None
 
     def _today_text(self):
         return u"Сегодня съедено {0} ккал".format(
@@ -53,7 +65,7 @@ class BaseStage(object):
             inline_keyboard=[
                 [
                     InlineKeyboardButton(text=u'Поесть', callback_data=u'eat|main'),
-                    InlineKeyboardButton(text=u'Продукты', callback_data=u'products|main'),
+                    InlineKeyboardButton(text=u'Продукты', callback_data=u'product|main'),
                 ],
                 [
                     InlineKeyboardButton(text=u'Сегодня', callback_data=u'today|main'),
@@ -77,27 +89,54 @@ class BaseStage(object):
             
         return self.sendMessage(msg, reply_markup=self.base_keyboard())
 
-    def sendMessage(self, *args, **kwargs):
-        res = self.session.sender.sendMessage(*args, **kwargs)
-        self.context['last_message'] = (res['chat']['id'], res['message_id'])
-        
-        return res
-    
-    def editMessageText(self, *args, **kwargs):
-        return self.session.bot.editMessageText(*args, **kwargs)
-
     def on_chat_message(self, msg, text):
         pass
     
     def on_callback_query(self, msg, cb_data):
         pass
     
+
 class DefaultStage(BaseStage):
     STAGE = BaseStage.DEFAULT
 
     def on_chat_message(self, msg, text):
-        print "On chat default"
-        res = self.base_message()
+        sep = u' по '
+        result = u'Ошибка'
+        
+        if sep in text:
+            weight, calories = text.split(sep, 1)
+            try:
+                weight = int(weight)
+                calories = int(calories)
+
+                calc.add_eating(
+                    user_id=self.user_id,
+                    product_id=None,
+                    calories=calories,
+                    weight=weight
+                )
+
+                result = u'Сохранено'
+            except ValueError:
+                result = u'Не сохранено. Проблема с целыми числами.'
+            except:
+                pass
+        else:
+            try:
+                calories = int(text)
+                calc.add_eating(
+                    user_id=self.user_id,
+                    product_id=None,
+                    calories=calories,
+                    weight=None
+                )
+                result = u'Сохранено'
+            except ValueError:
+                result = u'Не сохранено. Проблема с целыми числами.'
+            except:
+                pass
+
+        res = self.base_message(result)
         
         # {u'date': 1498604286,
         #  u'text': u'\u0421\u0435\u0433\u043e\u0434\u043d\u044f \u0441\u044a\u0435\u0434\u0435\u043d\u043e 0 \u043a\u043a\u0430\u043b\n\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u043e: 15:59 27.06.2017',
@@ -106,16 +145,20 @@ class DefaultStage(BaseStage):
         #  u'chat': {u'username': u'Ufian', u'first_name': u'Mikhail', u'last_name': u'Ufian', u'type': u'private', u'id': 113239144}}
         
     def on_callback_query(self, msg, cb_data):
-        pass
+        self.base_message(update=True)
 
-class EatSession(BaseStage):
-    STAGE = 'eat'
+class ProductSession(BaseStage):
+    STAGE = 'product'
     
+    def on_callback_query(self, msg, cb_data):
+        if cb_data == 'main':
+            self.editMessageText(u.get_edit_id(msg['message']), u'Продукты')
 
 
 class EatSession(telepot.helper.ChatHandler):
     STAGES = {
-        BaseStage.DEFAULT: DefaultStage
+        BaseStage.DEFAULT: DefaultStage,
+        'product': ProductSession,
     }
 
     @property
@@ -162,6 +205,7 @@ class EatSession(telepot.helper.ChatHandler):
         self.stage().on_chat_message(msg, u.get_text(msg))
         
     def on_callback_query(self, msg):
+        print "On callback", msg
         self.save_message(msg, skip_reply=True)
         cb_data = u.get_callback_data(msg)
         stage, sep, cb_data = cb_data.partition('|')
@@ -188,7 +232,7 @@ if __name__ == '__main__':
 
     bot = telepot.DelegatorBot(config.BOT_TOKEN, [
         pave_event_space()(
-            per_chat_id(('private',)), create_open, EatSession, timeout=10),
+            per_chat_id(('private',)), create_open, EatSession, include_callback_query=True, timeout=10),
     ])
     
     MessageLoop(bot).run_as_thread()
