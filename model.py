@@ -26,3 +26,9 @@ class UserConfig(me.Document):
     user_id = me.IntField(required=True)
     params = me.DictField()
     context = me.DictField()
+
+class GlobalConfig(me.Document):
+    meta = {'collection': 'global_config'}
+    
+    param = me.StringField(required=True)
+    value = me.StringField(required=True)
