@@ -14,6 +14,11 @@ import calculator as calc
 DEFAULT = 'default'
 PRODUCT = 'product'
 
+
+class StageException(Exception):
+    pass
+
+
 class SessionMixin(object):
     def __init__(self, session):
         self.session = session
@@ -37,7 +42,7 @@ class SessionMixin(object):
     
     def editCBMessageText(self, *args, **kwargs):
         if 'cb_message' not in self.context:
-            raise CCalException('Not found callback action')
+            raise StageException('Not found callback action')
         return self.editMessageText(self.context['cb_message'], *args, **kwargs)
 
     
@@ -55,20 +60,40 @@ class BaseStage(SessionMixin):
             date=u.get_date(udt),
             time=u.get_time(udt)
         )
+    
+    def _get_path(self, path):
+        if isinstance(path, basestring):
+            stage = self.STAGE
+        elif isinstance(path, tuple):
+            stage, path = path
+        else:
+            raise StageException('Path is wrong `{0}`'.format(path))
+        
+        return u'{0}|{1}'.format(stage, path)
+
+    def get_keyboard(self, rows):
+        keys = list()
+        for row in rows:
+            key_row = list()
+            for name, path in row:
+                key_row.append(InlineKeyboardButton(text=name, callback_data=self._get_path(path)))
+            keys.append(key_row)
+        
+        return InlineKeyboardMarkup(
+            inline_keyboard=keys
+        )
 
     def base_keyboard(self):
-        return InlineKeyboardMarkup(
-            inline_keyboard=[
-                [
-                    InlineKeyboardButton(text=u'Поесть', callback_data=u'eat|main'),
-                    InlineKeyboardButton(text=u'Продукты', callback_data=u'{0}|main'.format(PRODUCT)),
-                ],
-                [
-                    InlineKeyboardButton(text=u'Сегодня', callback_data=u'today|main'),
-                    InlineKeyboardButton(text=u'Статистика', callback_data=u'stat|main'),
-                ],
+        return self.get_keyboard([
+            [
+                (u'Поесть', (u'eat', u'main')),
+                (u'Продукты', (PRODUCT, u'main')),
+            ],
+            [
+                (u'Сегодня', (u'today', u'main')),
+                (u'Статистика', (u'stat', u'main')),
             ]
-        )
+        ])
 
     def base_message(self, message=None, update_msg=None, with_keyboard=True):
         parts = list()
@@ -148,9 +173,22 @@ class DefaultStage(BaseStage):
     def on_callback_query(self, msg, cb_data):
         self.base_message(update_msg=self.context['cb_message'])
 
+
 class ProductSession(BaseStage):
     STAGE = PRODUCT
     
     def on_callback_query(self, msg, cb_data):
         if cb_data == 'main':
-            self.editCBMessageText(u'Продукты')
+            parts = list()
+    
+            for row in calc.get_products(self.user_id):
+                parts.append(u"{0}: {1} ккал".format(row.name, row.calories))
+    
+            text = u"\n".join(parts)
+            
+            self.editCBMessageText(text, reply_markup=self.get_keyboard([
+                [
+                    (u'Добавить', u'add'),
+                    (u'Отмена', (DEFAULT, 'main'))
+                ]
+            ]))

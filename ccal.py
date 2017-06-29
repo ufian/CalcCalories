@@ -47,9 +47,9 @@ class EatSession(telepot.helper.ChatHandler):
         return getattr(get_connect(), config.DB['db'])
     
     def stage(self, new_stage=None):
-        stage = new_stage or self.context.get('stage', BaseStage.DEFAULT)
+        stage = new_stage or self.context.get('stage', st.DEFAULT)
         if stage not in self.STAGES:
-            stage = BaseStage.DEFAULT
+            stage = st.DEFAULT
             
         self.context['stage'] = stage
         return self.STAGES[stage](self)
@@ -93,8 +93,8 @@ class EatSession(telepot.helper.ChatHandler):
     
     
     def on_close(self, ex):
-        # BaseStage.DEFAULT -> fix message
-        stage = self.stage(BaseStage.DEFAULT)
+        # st.DEFAULT -> fix message
+        stage = self.stage(st.DEFAULT)
         if 'last_message' in self.context:
             stage.base_message('Finish', update_msg=self.context['last_message'])
             
