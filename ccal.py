@@ -21,6 +21,9 @@ import calculator as calc
 class CCalException(Exception):
     pass
 
+stime = time.time()
+ctime = lambda : time.time() - stime
+
 def get_connect():
     return me.connect(
         config.DB['db'],
@@ -42,12 +45,14 @@ class SessionMixin(object):
         return self.session.context
 
     def sendMessage(self, *args, **kwargs):
+        print "Send", ctime()
         res = self.session.sender.sendMessage(*args, **kwargs)
         self.context['last_message'] = u.get_edit_id(res)
         
         return res
     
     def editMessageText(self, *args, **kwargs):
+        print "Edit", ctime()
         return self.session.bot.editMessageText(*args, **kwargs)
     
     def editCBMessageText(self, *args, **kwargs):
@@ -203,6 +208,7 @@ class EatSession(telepot.helper.ChatHandler):
             self.sendMessage(user_id, u'Дамп из телегарма сохранен')
         
     def open(self, initial_msg, seed):
+        ts = ctime()
         self.user_id = seed
         self.user_config = model.UserConfig.objects.filter(user_id=self.user_id).first()
         print "Load ", self.user_config, 'by', seed
@@ -216,13 +222,13 @@ class EatSession(telepot.helper.ChatHandler):
         return False
 
     def on_chat_message(self, msg):
-        print "On chat"
+        print "On chat", ctime()
         self.save_message(msg, skip_reply=True)
         
         self.stage().on_chat_message(msg, u.get_text(msg))
         
     def on_callback_query(self, msg):
-        print "On callback", msg
+        print "On callback", ctime()
         self.save_message(msg, skip_reply=True)
         cb_data = u.get_callback_data(msg)
         stage, sep, cb_data = cb_data.partition('|')
@@ -239,13 +245,12 @@ class EatSession(telepot.helper.ChatHandler):
         stage = self.stage(BaseStage.DEFAULT)
         if 'last_message' in self.context:
             stage.base_message('Finish', update_msg=self.context['last_message'])
-        
-        if 'cb_message' in self.context:
+            
+        if 'cb_message' in self.context and self.context['cb_message'] != self.context.get('last_message'):
             stage.base_message(
                 'Finish',
                 update_msg=self.context['cb_message'],
-                with_keyboard= 'last_message' not in self.context \
-                                or self.context['last_message'] == self.context['cb_message']
+                with_keyboard= 'last_message' not in self.context
             )
         
         self.user_config.context = dict()
