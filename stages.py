@@ -202,6 +202,8 @@ class ProductSession(BaseStage):
             return
         
         if res == d.Dialog.FINISH:
+            calc.add_product(self.user_id, **self.context['product'])
+            
             self.set_stage(DEFAULT).base_message('Сохранено')
     
     def on_callback_query(self, msg, cb_data):
