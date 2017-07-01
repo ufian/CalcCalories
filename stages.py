@@ -45,7 +45,10 @@ class SessionMixin(object):
         res = self.session.sender.sendMessage(*args, **kwargs)
         
         if 'last_message' in self.user_data:
-            self.session.bot.editMessageReplyMarkup(tuple(self.user_data['last_message']), reply_markup=None)
+            try:
+                self.session.bot.editMessageReplyMarkup(tuple(self.user_data['last_message']), reply_markup=None)
+            except:
+                pass
             del self.user_data['last_message']
         
         if 'last_message' in self.context:
