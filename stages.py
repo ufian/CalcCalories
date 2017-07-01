@@ -176,9 +176,12 @@ class DefaultStage(BaseStage):
 
 class ProductSession(BaseStage):
     STAGE = PRODUCT
+
+    def on_chat_message(self, msg, text):
+        pass
     
     def on_callback_query(self, msg, cb_data):
-        if cb_data == 'main':
+        if cb_data == u'main':
             parts = list()
     
             for row in calc.get_products(self.user_id):
@@ -189,6 +192,9 @@ class ProductSession(BaseStage):
             self.editCBMessageText(text, reply_markup=self.get_keyboard([
                 [
                     (u'Добавить', u'add'),
-                    (u'Отмена', (DEFAULT, 'main'))
+                    (u'Отмена', (DEFAULT, u'main'))
                 ]
             ]))
+        elif cb_data == u'add':
+            pass
+        
