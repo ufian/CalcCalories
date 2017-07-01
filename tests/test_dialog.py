@@ -2,18 +2,21 @@
 
 __author__ = 'ufian'
 
-from dialog import Dialog
+from dialog import Dialog, DialogParam
 
-class TestClass(object):
+class TestDialog(object):
     
     def test_simple(self):
         params = [
-            {'name': 'calories', 'question': 'Calories?'},
-            {'name': 'weight', 'question': 'Weight?'}
+            DialogParam('calories'),
+            DialogParam('weight'),
         ]
         state = {}
         
         d = Dialog(params, state)
         
-        assert d.get_question() == 'Calories?'
+        assert d.get_question() == 'calories?'
         assert d.set_answer(10) == Dialog.CONTINUE
+
+        assert d.get_question() == 'weight?'
+        assert d.set_answer(10) == Dialog.FINISH
