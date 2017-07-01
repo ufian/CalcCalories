@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals, print_function
+
 __author__ = 'ufian'
 
 from dialog import Dialog, DialogParam
@@ -20,3 +22,5 @@ class TestDialog(object):
 
         assert d.get_question() == 'weight?'
         assert d.set_answer(10) == Dialog.FINISH
+
+        assert d.is_end()

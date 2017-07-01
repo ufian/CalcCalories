@@ -64,6 +64,9 @@ class Dialog(object):
             return next(self.it_params)
         except StopIteration:
             return None
+
+    def is_end(self):
+        return self.current is None
         
     def get_question(self):
         if self.current is None:

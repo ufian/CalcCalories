@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals, print_function
+
 __author__ = 'ufian'
 
 import config
@@ -60,12 +62,12 @@ class EatSession(telepot.helper.ChatHandler):
         msg_copy['date'] = datetime.datetime.utcnow()
         self.db.messages.insert_one(msg_copy)
         if not skip_reply:
-            self.sendMessage(user_id, u'Дамп из телегарма сохранен')
+            self.sendMessage(user_id, 'Дамп из телегарма сохранен')
         
     def open(self, initial_msg, seed):
         self.user_id = seed
         self.user_config = model.UserConfig.objects.filter(user_id=self.user_id).first()
-        print "Load ", self.user_config, 'by', seed
+        print("Load ", self.user_config, 'by', seed)
         if self.user_config is None:
             self.user_config = model.UserConfig(user_id=self.user_id)
             self.user_config.save()

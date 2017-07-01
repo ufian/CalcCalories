@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals, print_function
+
 __author__ = 'ufian'
 
 import datetime
@@ -10,6 +12,7 @@ from telepot.namedtuple import InlineQueryResultArticle, InputTextMessageContent
 
 import utils as u
 import calculator as calc
+import dialog as d
 
 DEFAULT = 'default'
 PRODUCT = 'product'
@@ -30,6 +33,9 @@ class SessionMixin(object):
     @property
     def context(self):
         return self.session.context
+    
+    def set_stage(self, stage):
+        return self.session.stage(stage)
 
     def sendMessage(self, *args, **kwargs):
         res = self.session.sender.sendMessage(*args, **kwargs)
@@ -69,7 +75,7 @@ class BaseStage(SessionMixin):
         else:
             raise StageException('Path is wrong `{0}`'.format(path))
         
-        return u'{0}|{1}'.format(stage, path)
+        return '{0}|{1}'.format(stage, path)
 
     def get_keyboard(self, rows):
         keys = list()
@@ -86,12 +92,12 @@ class BaseStage(SessionMixin):
     def base_keyboard(self):
         return self.get_keyboard([
             [
-                (u'Поесть', (u'eat', u'main')),
-                (u'Продукты', (PRODUCT, u'main')),
+                ('Поесть', (u'eat', u'main')),
+                ('Продукты', (PRODUCT, u'main')),
             ],
             [
-                (u'Сегодня', (u'today', u'main')),
-                (u'Статистика', (u'stat', u'main')),
+                ('Сегодня', (u'today', u'main')),
+                ('Статистика', (u'stat', u'main')),
             ]
         ])
 
@@ -177,8 +183,26 @@ class DefaultStage(BaseStage):
 class ProductSession(BaseStage):
     STAGE = PRODUCT
 
+    PARAMS = [
+        d.DialogParam('name', 'название',
+                      question='Введите название продукта'),
+        d.DialogParam('calories', 'калории', validate='int',
+                      question='Введите калорийность продукта'),
+    ]
+
+    def _get_dialog(self, state):
+        return d.Dialog(self.PARAMS, state)
+
     def on_chat_message(self, msg, text):
-        pass
+        dialog = self._get_dialog(self.context['product'])
+        res = dialog.set_answer(text)
+        
+        if res in (d.Dialog.CONTINUE, d.Dialog.BAD_VALUE):
+            self.sendMessage(dialog.get_question())
+            return
+        
+        if res == d.Dialog.FINISH:
+            self.set_stage(DEFAULT).base_message('Сохранено')
     
     def on_callback_query(self, msg, cb_data):
         if cb_data == u'main':
@@ -196,5 +220,6 @@ class ProductSession(BaseStage):
                 ]
             ]))
         elif cb_data == u'add':
-            pass
-        
+            self.context['product'] = {}
+            dialog = self._get_dialog(self.context['product'])
+            self.sendMessage(dialog.get_question())
