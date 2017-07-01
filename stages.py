@@ -129,7 +129,10 @@ class BaseStage(SessionMixin):
             keyboard = None
         
         if update_msg:
-            return self.editMessageText(update_msg, msg, reply_markup=keyboard)
+            try:
+                return self.editMessageText(update_msg, msg, reply_markup=keyboard)
+            except:
+                pass
             
         return self.sendMessage(msg, reply_markup=keyboard)
 
