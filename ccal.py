@@ -130,7 +130,7 @@ if __name__ == '__main__':
             [per_chat_id(('private',)), per_callback_query_chat_id(('private',))],
             create_open,
             EatSession,
-            include_callback_query=True, timeout=10),
+            include_callback_query=True, timeout=300),
     ])
     
     MessageLoop(bot).run_as_thread()
