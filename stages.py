@@ -15,6 +15,7 @@ import calculator as calc
 import dialog as d
 
 DEFAULT = 'default'
+EAT = 'eat'
 PRODUCT = 'product'
 
 
@@ -107,7 +108,7 @@ class BaseStage(SessionMixin):
     def base_keyboard(self):
         return self.get_keyboard([
             [
-                ('Поесть', (u'eat', u'main')),
+                ('Поесть', (EAT, u'main')),
                 ('Продукты', (PRODUCT, u'main')),
             ],
             [
@@ -198,7 +199,7 @@ class DefaultStage(BaseStage):
         self.base_message(update_msg=self.context['cb_message'])
 
 
-class ProductSession(BaseStage):
+class ProductStage(BaseStage):
     STAGE = PRODUCT
 
     PARAMS = [
@@ -243,3 +244,8 @@ class ProductSession(BaseStage):
             self.context['product'] = {}
             dialog = self._get_dialog(self.context['product'])
             self.sendMessage(dialog.get_question())
+
+
+class EatStage(BaseStage):
+    def on_callback_query(self):
+        self.set_stage(DEFAULT).base_message('Обеды не найдены')

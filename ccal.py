@@ -37,7 +37,8 @@ def get_connect():
 class EatSession(telepot.helper.ChatHandler):
     STAGES = {
         st.DEFAULT: st.DefaultStage,
-        st.PRODUCT: st.ProductSession,
+        st.PRODUCT: st.ProductStage,
+        st.EAT: st.EatStage,
     }
 
     @property
