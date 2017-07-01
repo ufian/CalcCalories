@@ -45,6 +45,10 @@ class EatSession(telepot.helper.ChatHandler):
         return self.user_config.context
     
     @property
+    def user_data(self):
+        return self.user_config.data
+    
+    @property
     def db(self):
         return getattr(get_connect(), config.DB['db'])
     
@@ -74,7 +78,10 @@ class EatSession(telepot.helper.ChatHandler):
 
         if self.user_config.context is None:
             self.user_config.context = dict()
-
+        
+        if self.user_config.data is None:
+            self.user_config.data = dict()
+        
         return False
 
     def on_chat_message(self, msg):
@@ -106,11 +113,12 @@ class EatSession(telepot.helper.ChatHandler):
                 update_msg=self.context['cb_message'],
                 with_keyboard= 'last_message' not in self.context
             )
+
+        if 'last_message' in self.context:
+            self.user_config.data['last_message'] = self.context['last_message']
         
         self.user_config.context = dict()
         self.user_config.save()
-
-        
 
 
 if __name__ == '__main__':

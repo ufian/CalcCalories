@@ -8,7 +8,7 @@ import datetime
 
 from telepot.namedtuple import InlineQueryResultArticle, InputTextMessageContent, \
     InlineKeyboardMarkup, InlineKeyboardButton, \
-    ReplyKeyboardMarkup, KeyboardButton
+    ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 
 import utils as u
 import calculator as calc
@@ -33,12 +33,24 @@ class SessionMixin(object):
     @property
     def context(self):
         return self.session.context
+
+    @property
+    def user_data(self):
+        return self.session.user_data
     
     def set_stage(self, stage):
         return self.session.stage(stage)
 
     def sendMessage(self, *args, **kwargs):
         res = self.session.sender.sendMessage(*args, **kwargs)
+        
+        if 'last_message' in self.user_data:
+            self.session.bot.editMessageReplyMarkup(tuple(self.user_data['last_message']), reply_markup=None)
+            del self.user_data['last_message']
+        
+        if 'last_message' in self.context:
+            self.session.bot.editMessageReplyMarkup(self.context['last_message'], reply_markup=None)
+        
         self.context['last_message'] = u.get_edit_id(res)
         
         return res
