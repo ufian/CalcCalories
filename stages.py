@@ -17,7 +17,8 @@ import dialog as d
 DEFAULT = 'default'
 EAT = 'eat'
 PRODUCT = 'product'
-
+TODAY = 'today'
+STAT = 'stat'
 
 class StageException(Exception):
     pass
@@ -112,8 +113,8 @@ class BaseStage(SessionMixin):
                 ('Продукты', (PRODUCT, u'main')),
             ],
             [
-                ('Сегодня', (u'today', u'main')),
-                ('Статистика', (u'stat', u'main')),
+                ('Сегодня', (TODAY, u'main')),
+                ('Статистика', (STAT, u'main')),
             ]
         ])
 
@@ -247,5 +248,21 @@ class ProductStage(BaseStage):
 
 
 class EatStage(BaseStage):
-    def on_callback_query(self):
+    STAGE = EAT
+
+    def on_callback_query(self, msg, cb_data):
+        self.set_stage(DEFAULT).base_message('Обеды не найдены')
+
+
+class TodayStage(BaseStage):
+    STAGE = TODAY
+
+    def on_callback_query(self, msg, cb_data):
+        self.set_stage(DEFAULT).base_message('Обеды не найдены')
+
+
+class StatStage(BaseStage):
+    STAGE = STAT
+
+    def on_callback_query(self, msg, cb_data):
         self.set_stage(DEFAULT).base_message('Обеды не найдены')

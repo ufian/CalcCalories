@@ -39,6 +39,8 @@ class EatSession(telepot.helper.ChatHandler):
         st.DEFAULT: st.DefaultStage,
         st.PRODUCT: st.ProductStage,
         st.EAT: st.EatStage,
+        st.STAT: st.StatStage,
+        st.TODAY: st.TodayStage,
     }
 
     @property
