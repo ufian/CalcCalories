@@ -257,12 +257,65 @@ class EatStage(BaseStage):
 class TodayStage(BaseStage):
     STAGE = TODAY
 
+    def _today_stat(self):
+        parts = list()
+        for row in calc.get_today_list(self.user_id):
+            line = u""
+
+            if row.date is not None:
+                line += u"{} ".format(u.get_time(row.date))
+
+            if row.calories is not None:
+                if row.weight is not None:
+                    line += u"{0} ккал ({1} г, {2} ккал/100г)".format(int(row.calories * row.weight / 100), row.weight, row.calories)
+                else:
+                    line += u"{0} ккал".format(row.calories)
+
+            if len(line) > 0:
+                parts.append(line)
+
+        return u"\n".join(parts)
+        
+
     def on_callback_query(self, msg, cb_data):
-        self.set_stage(DEFAULT).base_message('Обеды не найдены')
+        text = self._today_stat()
+        
+        self.editCBMessageText(text, reply_markup=self.get_keyboard([
+            [
+                (u'Отмена', (DEFAULT, u'main'))
+            ]
+        ]))
 
 
 class StatStage(BaseStage):
     STAGE = STAT
 
+    def _get_stat(self):
+        parts = list()
+
+        for row in calc.get_stat_data(self.user_id, days=31):
+            date = row.get('date')
+            calories = row.get('calories')
+
+            line = u""
+
+            if date is not None:
+                line += u"{} ".format(u.get_date(date))
+
+            if calories is not None:
+                    line += u"{0} ккал".format(calories)
+
+            if len(line) > 0:
+                parts.append(line)
+
+        return u"\n".join(parts)
+        
+
     def on_callback_query(self, msg, cb_data):
-        self.set_stage(DEFAULT).base_message('Обеды не найдены')
+        text = self._get_stat()
+        
+        self.editCBMessageText(text, reply_markup=self.get_keyboard([
+            [
+                (u'Отмена', (DEFAULT, u'main'))
+            ]
+        ]))
