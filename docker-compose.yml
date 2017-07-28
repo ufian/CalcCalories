@@ -6,7 +6,7 @@ networks:
       name: web
 
 services:
-  twitoryback:
+  ccal:
     image: ufian/telegram
     command: python /src/ccal.py
     volumes:
