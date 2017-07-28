@@ -1,0 +1,18 @@
+version: "2"
+
+networks:
+  mynetwork:
+    external:
+      name: web
+
+services:
+  twitoryback:
+    image: ufian/telegram
+    command: python /src/ccal.py
+    volumes:
+    - .:/src
+    networks:
+      default: {}
+      mynetwork:
+        aliases:
+        - udmurt`
