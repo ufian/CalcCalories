@@ -8,6 +8,7 @@ networks:
 services:
   ccal:
     image: ufian/telegram
+    restart: always
     command: python /src/ccal.py
     volumes:
     - .:/src
